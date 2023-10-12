@@ -14,6 +14,7 @@ from chromadb.db.base import (
     UniqueConstraintError,
 )
 from chromadb.db.system import SysDB
+from chromadb.ingest import CollectionAssignmentPolicy
 from chromadb.types import (
     OptionalArgument,
     Segment,
@@ -26,7 +27,11 @@ from chromadb.types import (
 
 
 class SqlSysDB(SqlDB, SysDB):
+    _assignment_policy: CollectionAssignmentPolicy
+
     def __init__(self, system: System):
+        self._assignment_policy = system.instance(CollectionAssignmentPolicy)
+
         super().__init__(system)
 
     @override
@@ -69,8 +74,20 @@ class SqlSysDB(SqlDB, SysDB):
                 )
 
     @override
-    def create_collection(self, collection: Collection) -> None:
-        """Create a new collection"""
+    def create_collection(
+        self,
+        id: UUID,
+        name: str,
+        metadata: Optional[Metadata] = None,
+        dimension: Optional[int] = None,
+    ) -> Collection:
+        """Create a new collection and the associate topic"""
+
+        topic = self._assignment_policy.assign_collection(id)
+        collection = Collection(
+            id=id, topic=topic, name=name, metadata=metadata, dimension=dimension
+        )
+
         with self.tx() as cur:
             collections = Table("collections")
             insert_collection = (
@@ -105,6 +122,7 @@ class SqlSysDB(SqlDB, SysDB):
                     collection["id"],
                     collection["metadata"],
                 )
+        return collection
 
     @override
     def get_segments(

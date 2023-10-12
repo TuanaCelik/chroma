@@ -3,6 +3,7 @@ from typing import Optional, Sequence
 from uuid import UUID
 from chromadb.types import (
     Collection,
+    Metadata,
     Segment,
     SegmentScope,
     OptionalArgument,
@@ -52,8 +53,15 @@ class SysDB(Component):
         pass
 
     @abstractmethod
-    def create_collection(self, collection: Collection) -> None:
-        """Create a new collection any associated resources in the SysDB."""
+    def create_collection(
+        self,
+        id: UUID,
+        name: str,
+        metadata: Optional[Metadata] = None,
+        dimension: Optional[int] = None,
+    ) -> Collection:
+        """Create a new collection any associated resources
+        (Such as the necessary topics) in the SysDB."""
         pass
 
     @abstractmethod
